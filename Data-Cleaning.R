@@ -44,6 +44,7 @@ summary(data_all_AA$ARR_DELAY)
 data_all_AA %>% ggplot(aes(x = ARR_DELAY)) + geom_histogram() + coord_cartesian(xlim=c(-100,500))
 data_all_AA %>% ggplot(aes(x = ARR_DELAY)) + geom_density() + coord_cartesian(xlim=c(-100,500))
 
+# data_all_AA %>% ggplot(aes(x = ARR_DELAY, y=ARR_DELAY )) + geom_point() 
 
 #### Creating region variables ####
 ## Origin
@@ -212,6 +213,65 @@ dataNaCols
 
 
 ###### Outliers #####
+#### Distance ####
+
+# grouping does not help
+#df_final %>% group_by(distance= DISTANCE) %>% 
+#  summarize(AverageDelay = mean(ARR_DELAY, na.rm = TRUE)) %>% 
+#  ggplot(aes(x = distance, y = AverageDelay)) + geom_point()
+
+df_final %>% ggplot(aes(x = DISTANCE, y = ARR_DELAY)) + geom_point()
+
+df_final %>% ggplot(aes(x = DISTANCE, y = ARR_DELAY)) + geom_smooth() 
+# looks like we need polynoms higher degrees (3rd or something)
+
+## decision: everything that is more delayed than 24 hours, wont be considered as delayed
+# rather cancelled, thus, wew cut ARR_DELAY at 1440 (60minutes*24)
+
+table(df_final$ARR_DELAY >1440) #103 observations have a higher delay time, will be removed
+df_final <- df_final %>% filter(ARR_DELAY <= 1440)
+
+
+
+#### Departure Time ####
+
+table(df_final$CRS_DEP_TIME)
+# as factor does not make sense, too many dep times, very individual, kinda continuous
+df_final %>% 
+  ggplot(aes(x = CRS_DEP_TIME, y = ARR_DELAY)) + geom_point() 
+
+df_final %>% 
+  ggplot(aes(x = CRS_DEP_TIME, y = ARR_DELAY)) + geom_snooth() # looks like we need pol at least 3rd
+#df_final %>% 
+#  ggplot(aes(x = CRS_DEP_TIME, y = ARR_DELAY, color= DEST)) + geom_point() 
+# color does not really make it better at all
+
+#### Arrival Time #####
+table(df_final$CRS_ARR_TIME)
+
+df_final %>% 
+  ggplot(aes(x = CRS_ARR_TIME, y = ARR_DELAY)) + geom_point() 
+
+df_final %>% 
+  ggplot(aes(x = CRS_ARR_TIME, y = ARR_DELAY)) + geom_smooth() # looks like we need pol at least 3rd
+
+#### Region Destination ####
+
+df_final %>% ggplot(aes(x = regionDestination, y = ARR_DELAY)) + geom_boxplot()
+df_final %>% ggplot(aes(x = regionDestination, y = ARR_DELAY)) + geom_point() 
+
+##### Region Origin #####
+
+df_final %>% ggplot(aes(x = regionOrigin, y = ARR_DELAY)) + geom_boxplot()
+df_final %>% ggplot(aes(x = regionOrigin, y = ARR_DELAY)) + geom_point() 
+
+
+#### Departure Delay ####
+# I know we might not have this, my idea is to predict this in the 
+# first step and then use it as a feature
+
+df_final %>% ggplot(aes(x = DEP_DELAY, y = ARR_DELAY)) + geom_point() 
+df_final %>% ggplot(aes(x = DEP_DELAY, y = ARR_DELAY)) + geom_smooth() # is a straight line :D
 
 
 
