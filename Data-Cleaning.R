@@ -287,6 +287,12 @@ date = as.Date(c("2018-09-30"))
 date
 month(date)
 test_val_data = df_final %>% filter(FL_DATE > date)
+nrow(test_val_data)
+number_obs_last12 = nrow(test_val_data)
+train_data = df_final %>% filter(FL_DATE <= date)
+total_number_obs = nrow(df_final)
+percentage_of_data_we_sample_from = round(number_obs_last12/total_number_obs*100)
+
 
 ## getting data for every month
 test_val_data_Jan = test_val_data %>% filter(month(FL_DATE) == 1)
@@ -303,17 +309,189 @@ test_val_data_Nov = test_val_data %>% filter(month(FL_DATE) == 11)
 test_val_data_Dec = test_val_data %>% filter(month(FL_DATE) == 12)
 
 
+# 92% training 
+# 4% test
+# 2% each validation set
 
+#### test set #####
+percentage_test_set = 4
+p = percentage_test_set/percentage_of_data_we_sample_from
 
-rows_test_jan = sample(nrow(test_val_data_Jan), 0.01*nrow(test_val_data_Jan))
+rows_test_jan = sample(nrow(test_val_data_Jan), p*nrow(test_val_data_Jan))
 test_jan = test_val_data_Jan[rows_test_jan,]
+rest_jan = test_val_data_Jan[-rows_test_jan,]
 
-rows_test_feb = sample(nrow(test_val_data_Feb), 0.01*nrow(test_val_data_Feb))
+rows_test_feb = sample(nrow(test_val_data_Feb), p*nrow(test_val_data_Feb))
 test_feb = test_val_data_Feb[rows_test_feb,]
+rest_feb = test_val_data_Feb[-rows_test_feb,]
 
-rows_test_mar = sample(nrow(test_val_data_Mar), 0.01*nrow(test_val_data_Mar))
+rows_test_mar = sample(nrow(test_val_data_Mar), p*nrow(test_val_data_Mar))
 test_mar = test_val_data_Mar[rows_test_mar,]
+rest_mar = test_val_data_Mar[-rows_test_mar,]
 
-rows_test_apr = sample(nrow(test_val_data_Apr), 0.01*nrow(test_val_data_Apr))
-test_apr = test_val_data_Mar[rows_test_apr,]
+rows_test_apr = sample(nrow(test_val_data_Apr), p*nrow(test_val_data_Apr))
+test_apr = test_val_data_Apr[rows_test_apr,]
+rest_apr = test_val_data_Apr[-rows_test_apr,]
+
+rows_test_may = sample(nrow(test_val_data_May), p*nrow(test_val_data_May))
+test_may = test_val_data_May[rows_test_may,]
+rest_may = test_val_data_May[-rows_test_may,]
+
+rows_test_jun = sample(nrow(test_val_data_Jun), p*nrow(test_val_data_Jun))
+test_jun = test_val_data_May[rows_test_jun,]
+rest_jun = test_val_data_May[-rows_test_jun,]
+
+rows_test_jul = sample(nrow(test_val_data_Jul), p*nrow(test_val_data_Jul))
+test_jul = test_val_data_Jul[rows_test_jul,]
+rest_jul = test_val_data_Jul[-rows_test_jul,]
+
+rows_test_aug = sample(nrow(test_val_data_Aug), p*nrow(test_val_data_Aug))
+test_aug = test_val_data_Aug[rows_test_aug,]
+rest_aug = test_val_data_Aug[-rows_test_aug,]
+
+rows_test_sep = sample(nrow(test_val_data_Sep), p*nrow(test_val_data_Sep))
+test_sep = test_val_data_Sep[rows_test_sep,]
+rest_sep = test_val_data_Sep[-rows_test_sep,]
+
+rows_test_oct = sample(nrow(test_val_data_Oct), p*nrow(test_val_data_Oct))
+test_oct = test_val_data_Oct[rows_test_oct,]
+rest_oct = test_val_data_Oct[-rows_test_oct,]
+
+rows_test_nov = sample(nrow(test_val_data_Nov), p*nrow(test_val_data_Nov))
+test_nov = test_val_data_Nov[rows_test_nov,]
+rest_nov = test_val_data_Nov[-rows_test_nov,]
+
+rows_test_dec = sample(nrow(test_val_data_Dec), p*nrow(test_val_data_Dec))
+test_dec = test_val_data_Dec[rows_test_dec,]
+rest_dec = test_val_data_Dec[-rows_test_dec,]
+
+#### test set ####
+test_list = list( test_jan, test_feb, test_mar, test_apr, test_may, test_jun, test_jul, test_aug
+                  , test_sep, test_oct, test_nov, test_dec)
+
+test_data = rbindlist(test_list)
+
+##### getting validation sets ####
+percentage_val1 = 2
+p_val1 = percentage_val1/(percentage_of_data_we_sample_from - percentage_test_set)
+# 2% for val 1
+val1.ids_jan <- sample(nrow(rest_jan), p_val1*nrow(rest_jan))
+val1_jan <- rest_jan[val1.ids_jan,]
+rest_jan <- rest_jan[-val1.ids_jan,]
+
+val1.ids_feb <- sample(nrow(rest_feb), p_val1*nrow(rest_feb))
+val1_feb <- rest_feb[val1.ids_feb,]
+rest_feb <- rest_feb[-val1.ids_feb,]
+
+val1.ids_mar <- sample(nrow(rest_mar), p_val1*nrow(rest_mar))
+val1_mar <- rest_mar[val1.ids_mar,]
+rest_mar <- rest_mar[-val1.ids_mar,]
+
+val1.ids_apr <- sample(nrow(rest_apr), p_val1*nrow(rest_apr))
+val1_apr <- rest_apr[val1.ids_apr,]
+rest_apr <- rest_apr[-val1.ids_apr,]
+
+val1.ids_may <- sample(nrow(rest_may), p_val1*nrow(rest_may))
+val1_may <- rest_may[val1.ids_may,]
+rest_may <- rest_may[-val1.ids_may,]
+
+val1.ids_jun <- sample(nrow(rest_jun), p_val1*nrow(rest_jun))
+val1_jun <- rest_jun[val1.ids_jun,]
+rest_jun <- rest_jun[-val1.ids_jun,]
+
+val1.ids_jul <- sample(nrow(rest_jul), p_val1*nrow(rest_jul))
+val1_jul <- rest_jul[val1.ids_jul,]
+rest_jul <- rest_jul[-val1.ids_jul,]
+
+val1.ids_aug <- sample(nrow(rest_aug), p_val1*nrow(rest_aug))
+val1_aug <- rest_aug[val1.ids_aug,]
+rest_aug <- rest_aug[-val1.ids_aug,]
+
+val1.ids_sep <- sample(nrow(rest_sep), p_val1*nrow(rest_sep))
+val1_sep <- rest_sep[val1.ids_sep,]
+rest_sep <- rest_sep[-val1.ids_sep,]
+
+val1.ids_oct <- sample(nrow(rest_oct), p_val1*nrow(rest_oct))
+val1_oct <- rest_oct[val1.ids_oct,]
+rest_oct <- rest_oct[-val1.ids_oct,]
+
+val1.ids_nov <- sample(nrow(rest_nov), p_val1*nrow(rest_nov))
+val1_nov <- rest_nov[val1.ids_nov,]
+rest_nov <- rest_nov[-val1.ids_nov,]
+
+val1.ids_dec <- sample(nrow(rest_dec), p_val1*nrow(rest_dec))
+val1_dec <- rest_dec[val1.ids_dec,]
+rest_dec <- rest_dec[-val1.ids_dec,]
+
+val1_list = list( val1_jan, val1_feb, val1_mar, val1_apr, val1_may, val1_jun, val1_jul,
+                  val1_aug, val1_sep, val1_oct, val1_nov, val1_dec)
+
+val1_data = rbindlist(val1_list)
+
+
+##### second validation set #######
+percentage_val2 = 2
+p_val2 = percentage_val2/(percentage_of_data_we_sample_from - percentage_test_set - percentage_val1 )
+# 2% for val 2
+val2.ids_jan <- sample(nrow(rest_jan), p_val2*nrow(rest_jan))
+val2_jan <- rest_jan[val2.ids_jan,]
+rest_jan <- rest_jan[-val2.ids_jan,]
+
+val2.ids_feb <- sample(nrow(rest_feb), p_val2*nrow(rest_feb))
+val2_feb <- rest_feb[val2.ids_feb,]
+rest_feb <- rest_feb[-val2.ids_feb,]
+
+val2.ids_mar <- sample(nrow(rest_mar), p_val2*nrow(rest_mar))
+val2_mar <- rest_mar[val2.ids_mar,]
+rest_mar <- rest_mar[-val2.ids_mar,]
+
+val2.ids_apr <- sample(nrow(rest_apr), p_val2*nrow(rest_apr))
+val2_apr <- rest_apr[val2.ids_apr,]
+rest_apr <- rest_apr[-val2.ids_apr,]
+
+val2.ids_may <- sample(nrow(rest_may), p_val2*nrow(rest_may))
+val2_may <- rest_may[val2.ids_may,]
+rest_may <- rest_may[-val2.ids_may,]
+
+val2.ids_jun <- sample(nrow(rest_jun), p_val2*nrow(rest_jun))
+val2_jun <- rest_jun[val2.ids_jun,]
+rest_jun <- rest_jun[-val2.ids_jun,]
+
+val2.ids_jul <- sample(nrow(rest_jul), p_val2*nrow(rest_jul))
+val2_jul <- rest_jul[val2.ids_jul,]
+rest_jul <- rest_jul[-val2.ids_jul,]
+
+val2.ids_aug <- sample(nrow(rest_aug), p_val2*nrow(rest_aug))
+val2_aug <- rest_aug[val2.ids_aug,]
+rest_aug <- rest_aug[-val2.ids_aug,]
+
+val2.ids_sep <- sample(nrow(rest_sep), p_val2*nrow(rest_sep))
+val2_sep <- rest_sep[val2.ids_sep,]
+rest_sep <- rest_sep[-val2.ids_sep,]
+
+val2.ids_oct <- sample(nrow(rest_oct), p_val2*nrow(rest_oct))
+val2_oct <- rest_oct[val2.ids_oct,]
+rest_oct <- rest_oct[-val2.ids_oct,]
+
+val2.ids_nov <- sample(nrow(rest_nov), p_val2*nrow(rest_nov))
+val2_nov <- rest_nov[val2.ids_nov,]
+rest_nov <- rest_nov[-val2.ids_nov,]
+
+val2.ids_dec <- sample(nrow(rest_dec), p_val2*nrow(rest_dec))
+val2_dec <- rest_dec[val2.ids_dec,]
+rest_dec <- rest_dec[-val2.ids_dec,]
+
+val2_list = list( val2_jan, val2_feb, val2_mar, val2_apr, val2_may, val2_jun, val2_jul,
+                  val2_aug, val2_sep, val2_oct, val2_nov, val2_dec)
+
+val2_data = rbindlist(val2_list)
+
+
+###### adding everything we did not use from the test_val data from the last 12 month back
+# to the training data 
+
+train_list = list( train_data, rest_jan, rest_feb, rest_mar, rest_apr, rest_may, rest_jun, rest_jul,
+                   rest_aug, rest_sep, rest_oct, rest_nov, rest_dec)
+
+train_data = rbindlist(train_list)
 
