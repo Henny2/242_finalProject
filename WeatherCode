@@ -1,0 +1,30 @@
+# Read data
+weather <- read.csv("242data/Weather.csv")
+weather <- transform(weather, DATE = as.Date(as.character(DATE),"%m/%d/%y"))
+# merge datasets
+data_all_AA_weather <- merge(x= data_all_AA, y = weather, by.x = c("ORIGIN","FL_DATE"), by.y = c("Airport.CODE","DATE"))
+data_all_AA_weather <- merge(x= data_all_AA_weather, y = weather, by.x = c("DEST","FL_DATE"), by.y = c("Airport.CODE","DATE"))
+write.csv(data_all_AA_weather,'data_all_AA_weather.csv')
+data_all_AA_weather <- read.csv("242data/data_all_AA_weather.csv")
+# remove useless columns
+data_all_AA_weather$WESD.y <- NULL
+data_all_AA_weather$WESD.x <- NULL
+data_all_AA_weather$X <- NULL
+data_all_AA_weather$STATION.x <- NULL
+data_all_AA_weather$STATION.y <- NULL
+
+#Average wind speed (AWND);Peak gust time (PGTM);Direction of fastest 2-minute wind (WDF2)
+#Precipitation (PRCP)
+#Snowfall (SNOW), Snow depth (SNWD)
+#Average Temperature. (TAVG)
+
+#visualization
+ggplot(data=data_all_AA_weather[which(data_all_AA_weather$AWND.x<20),], aes(x=AWND.x, y=ARR_DELAY))+geom_point()
+ggplot(data=data_all_AA_weather[which(data_all_AA_weather$AWND.x<20),], aes(x=AWND.x, y=ARR_DELAY))+geom_smooth()
+
+ggplot(data=data_all_AA_weather[which(data_all_AA_weather$PRCP.x<10),], aes(x=PRCP.x, y=ARR_DELAY))+geom_point()
+ggplot(data=data_all_AA_weather[which(data_all_AA_weather$PRCP.x<10),], aes(x=PRCP.x, y=ARR_DELAY))+geom_smooth()
+
+
+ggplot(data=data_all_AA_weather, aes(x=TAVG.y, y=ARR_DELAY))+geom_point()
+ggplot(data=data_all_AA_weather, aes(x=TAVG.y, y=ARR_DELAY))+geom_smooth()
