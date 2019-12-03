@@ -276,8 +276,38 @@ df_final %>% ggplot(aes(x = regionOrigin, y = ARR_DELAY)) + geom_point()
 df_final %>% ggplot(aes(x = DEP_DELAY, y = ARR_DELAY)) + geom_point() 
 df_final %>% ggplot(aes(x = DEP_DELAY, y = ARR_DELAY)) + geom_smooth() # is a straight line :D
 
+#### Add Weather Data ####
+
+# Read data
+weather <- read.csv("242data/Weather.csv")
+weather <- transform(weather, DATE = as.Date(as.character(DATE),"%m/%d/%y"))
+# merge datasets
+df_final_weather <- merge(x= df_final, y = weather, by.x = c("ORIGIN","FL_DATE"), by.y = c("Airport.CODE","DATE"))
+df_final_weather <- merge(x= df_final_weather, y = weather, by.x = c("DEST","FL_DATE"), by.y = c("Airport.CODE","DATE"))
+# remove useless columns
+df_final_weather$WESD.y <- NULL
+df_final_weather$WESD.x <- NULL
+df_final_weather$X <- NULL
+df_final_weather$STATION.x <- NULL
+df_final_weather$STATION.y <- NULL
+
+#Average wind speed (AWND);Peak gust time (PGTM);Direction of fastest 2-minute wind (WDF2)
+#Precipitation (PRCP)
+#Snowfall (SNOW), Snow depth (SNWD)
+#Average Temperature. (TAVG)
+
+#visualization
+ggplot(data=df_final_weather[which(data_all_AA_weather$AWND.x<20),], aes(x=AWND.x, y=ARR_DELAY))+geom_point()
+ggplot(data=df_final_weather[which(data_all_AA_weather$AWND.x<20),], aes(x=AWND.x, y=ARR_DELAY))+geom_smooth()
+
+ggplot(data=df_final_weather[which(data_all_AA_weather$PRCP.x<10),], aes(x=PRCP.x, y=ARR_DELAY))+geom_point()
+ggplot(data=df_final_weather[which(data_all_AA_weather$PRCP.x<10),], aes(x=PRCP.x, y=ARR_DELAY))+geom_smooth()
 
 
+ggplot(data=df_final_weather, aes(x=TAVG.y, y=ARR_DELAY))+geom_point()
+ggplot(data=df_final_weather, aes(x=TAVG.y, y=ARR_DELAY))+geom_smooth()
+
+df_final <- df_final_weather
 ###### Splitting Data ####### (for regression)
 
 # most recent data for test and evaluation 
