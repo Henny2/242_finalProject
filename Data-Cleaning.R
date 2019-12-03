@@ -228,8 +228,11 @@ df_final %>% ggplot(aes(x = DISTANCE, y = ARR_DELAY)) + geom_smooth()
 ## decision: everything that is more delayed than 24 hours, wont be considered as delayed
 # rather cancelled, thus, wew cut ARR_DELAY at 1440 (60minutes*24)
 
-table(df_final$ARR_DELAY >1440) #103 observations have a higher delay time, will be removed
-df_final <- df_final %>% filter(ARR_DELAY <= 1440)
+##### decided not to cut! we want to use the model to make AA able to cancle those flights in
+# advnace, thus we need to predcit them as well!
+
+#table(df_final$ARR_DELAY >1440) #103 observations have a higher delay time, will be removed
+#df_final <- df_final %>% filter(ARR_DELAY <= 1440)
 
 
 
@@ -275,4 +278,42 @@ df_final %>% ggplot(aes(x = DEP_DELAY, y = ARR_DELAY)) + geom_smooth() # is a st
 
 
 
+###### Splitting Data ####### (for regression)
+
+# most recent data for test and evaluation 
+# looking at the last 12 month and sampling data from those for test and evaluation to get
+# flights from all months (and not only the most recent ones)
+date = as.Date(c("2018-09-30"))
+date
+month(date)
+test_val_data = df_final %>% filter(FL_DATE > date)
+
+## getting data for every month
+test_val_data_Jan = test_val_data %>% filter(month(FL_DATE) == 1)
+test_val_data_Feb = test_val_data %>% filter(month(FL_DATE) == 2)
+test_val_data_Mar = test_val_data %>% filter(month(FL_DATE) == 3)
+test_val_data_Apr = test_val_data %>% filter(month(FL_DATE) == 4)
+test_val_data_May = test_val_data %>% filter(month(FL_DATE) == 5)
+test_val_data_Jun = test_val_data %>% filter(month(FL_DATE) == 6)
+test_val_data_Jul = test_val_data %>% filter(month(FL_DATE) == 7)
+test_val_data_Aug = test_val_data %>% filter(month(FL_DATE) == 8)
+test_val_data_Sep = test_val_data %>% filter(month(FL_DATE) == 9)
+test_val_data_Oct = test_val_data %>% filter(month(FL_DATE) == 10)
+test_val_data_Nov = test_val_data %>% filter(month(FL_DATE) == 11)
+test_val_data_Dec = test_val_data %>% filter(month(FL_DATE) == 12)
+
+
+
+
+rows_test_jan = sample(nrow(test_val_data_Jan), 0.01*nrow(test_val_data_Jan))
+test_jan = test_val_data_Jan[rows_test_jan,]
+
+rows_test_feb = sample(nrow(test_val_data_Feb), 0.01*nrow(test_val_data_Feb))
+test_feb = test_val_data_Feb[rows_test_feb,]
+
+rows_test_mar = sample(nrow(test_val_data_Mar), 0.01*nrow(test_val_data_Mar))
+test_mar = test_val_data_Mar[rows_test_mar,]
+
+rows_test_apr = sample(nrow(test_val_data_Apr), 0.01*nrow(test_val_data_Apr))
+test_apr = test_val_data_Mar[rows_test_apr,]
 
