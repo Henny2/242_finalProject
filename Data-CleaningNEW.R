@@ -511,6 +511,16 @@ ggplot(data=df_final_weather, aes(x=TAVG.y, y=ARR_DELAY))+geom_point()
 ggplot(data=df_final_weather, aes(x=TAVG.y, y=ARR_DELAY))+geom_smooth()
 
 df_final <- df_final_weather
+head(df_final)
+## putting as factor
+
+#WT_Origin
+#WT_Destination
+df_final$WT_Origin = as.factor(df_final$WT_Origin)
+df_final$WT_Destination = as.factor(df_final$WT_Destination)
+df_final$CANCELLED = as.factor(df_final$CANCELLED)
+str(df_final$CANCELLED)
+
 
 
 ##### getting polynomial degrees #######
