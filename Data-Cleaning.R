@@ -291,10 +291,42 @@ df_final_weather$X <- NULL
 df_final_weather$STATION.x <- NULL
 df_final_weather$STATION.y <- NULL
 
-#Average wind speed (AWND);Peak gust time (PGTM);Direction of fastest 2-minute wind (WDF2)
+df_final_weather$PGTM.x <- NULL
+df_final_weather$PGTM.y <- NULL
+df_final_weather$WSF2.x <- NULL
+df_final_weather$WSF2.y <- NULL
+df_final_weather$WSF5.x <- NULL
+df_final_weather$WSF5.y <- NULL
+df_final_weather$SNWD.x <- NULL
+df_final_weather$SNWD.y <- NULL
+df_final_weather$WDF5.x <- NULL
+df_final_weather$WDF5.y <- NULL
+
+df_final_weather$TAVG.x[which(is.na(df_final_weather$TAVG.x))] <- (df_final_weather$TMAX.x[which(is.na(df_final_weather$TAVG.x))]
+                                                                         + df_final_weather$TMIN.x[which(is.na(df_final_weather$TAVG.x))])/2
+      
+df_final_weather$TAVG.y[which(is.na(df_final_weather$TAVG.y))] <- (df_final_weather$TMAX.y[which(is.na(df_final_weather$TAVG.y))]
+                                                                         + df_final_weather$TMIN.y[which(is.na(df_final_weather$TAVG.y))])/2
+
+df_final_weather[which((!is.na(df_final_weather$AWND.x))&
+                           (!is.na(df_final_weather$PRCP.x))&
+                           (!is.na(df_final_weather$SNOW.x))&
+                           (!is.na(df_final_weather$TAVG.x))&
+                           (!is.na(df_final_weather$WDF2.x))&
+                          (!is.na(df_final_weather$WT_Origin)&
+                             (!is.na(df_final_weather$AWND.y))&
+                             (!is.na(df_final_weather$PRCP.y))&
+                             (!is.na(df_final_weather$SNOW.y))&
+                             (!is.na(df_final_weather$TAVG.y))&
+                             (!is.na(df_final_weather$WDF2.y))&
+                           (!is.na(df_final_weather$WT_Destination))),])
+
+## All weather variables
+#Average wind speed (AWND);Direction of fastest 2-minute wind (WDF2)
 #Precipitation (PRCP)
-#Snowfall (SNOW), Snow depth (SNWD)
+#Snowfall (SNOW)
 #Average Temperature. (TAVG)
+#Weather Type (WT)
 
 #visualization
 ggplot(data=df_final_weather[which(data_all_AA_weather$AWND.x<20),], aes(x=AWND.x, y=ARR_DELAY))+geom_point()
