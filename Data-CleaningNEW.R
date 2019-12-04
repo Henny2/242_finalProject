@@ -530,8 +530,7 @@ big_formula <- ARR_DELAY ~ poly(DISTANCE, poly_degree) + poly(CRS_DEP_TIME, poly
   poly(AWND.x, poly_degree) + poly(AWND.y, poly_degree) + poly(PRCP.x, poly_degree) +
   poly(PRCP.y, poly_degree) + poly(TAVG.x, poly_degree) + poly(TAVG.y, poly_degree) + 
   poly(WDF2.x, poly_degree) + poly(WDF2.y, poly_degree) + poly(SNOW.x, poly_degree) +
-  poly(SNOW.y, poly_degree) + poly(WT_Origin, poly_degree) +
-  poly(WT_Destination, poly_degree) - 1
+  poly(SNOW.y, poly_degree) + - 1
 dataX <- model.matrix(big_formula, data = df_final)
 
 final_data <- as.data.frame(cbind(df_final, dataX))
