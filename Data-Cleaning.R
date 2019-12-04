@@ -319,7 +319,7 @@ df_final_weather <- df_final_weather[which((!is.na(df_final_weather$AWND.x))&
                              (!is.na(df_final_weather$SNOW.y))&
                              (!is.na(df_final_weather$TAVG.y))&
                              (!is.na(df_final_weather$WDF2.y))&
-                           (!is.na(df_final_weather$WT_Destination))),])
+                           (!is.na(df_final_weather$WT_Destination))),]
 
 ## All weather variables
 #Average wind speed (AWND);Direction of fastest 2-minute wind (WDF2)
