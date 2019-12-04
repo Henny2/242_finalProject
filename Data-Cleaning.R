@@ -308,7 +308,7 @@ df_final_weather$TAVG.x[which(is.na(df_final_weather$TAVG.x))] <- (df_final_weat
 df_final_weather$TAVG.y[which(is.na(df_final_weather$TAVG.y))] <- (df_final_weather$TMAX.y[which(is.na(df_final_weather$TAVG.y))]
                                                                          + df_final_weather$TMIN.y[which(is.na(df_final_weather$TAVG.y))])/2
 
-df_final_weather[which((!is.na(df_final_weather$AWND.x))&
+df_final_weather <- df_final_weather[which((!is.na(df_final_weather$AWND.x))&
                            (!is.na(df_final_weather$PRCP.x))&
                            (!is.na(df_final_weather$SNOW.x))&
                            (!is.na(df_final_weather$TAVG.x))&
