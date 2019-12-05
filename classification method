@@ -1,0 +1,59 @@
+###########basic boosting##########classification 
+
+##add classification dependent variable: delay
+
+train_data$delay <- 0
+test_data$delay <- 0
+
+
+###### <15min: on time
+###### 15-180min: slight delay
+##### 180-300min: medium delay
+#####>300min: large delay
+
+
+if (train_data$ARR_DELAY<=15){
+  train_data$delay = 'OnTime'
+} else if (train_data$ARR_DELAY<=180 & train_data$ARR_DELAY> 15){
+  train_data$delay = 'SlightDelay'
+} else if (train_data$ARR_DELAY<=300 & train_data$ARR_DELAY> 180){
+  train_data$delay = 'MediumDelay'
+} else{
+  train_data$delay = 'LargeDelay'
+}
+
+if (test_data$ARR_DELAY<=15){
+  test_data$delay = 'OnTime'
+} else if (test_data$ARR_DELAY<=180 & test_data$ARR_DELAY> 15){
+  test_data$delay = 'SlightDelay'
+} else if (test_data$ARR_DELAY<=300 & test_data$ARR_DELAY> 180){
+  test_data$delay = 'MediumDelay'
+} else{
+  test_data$delay = 'LargeDelay'
+}
+
+
+#####basic boosting with simple variables
+####error: Error in dimnames(gbm.obj$fit) <- `*vtmp*` : 'dimnames' must be a list
+
+
+mod.boost <- gbm(delay ~ CRS_DEP_TIME + ORIGIN + DEST+ AWND.x + TAVG.x + SNOW.x + PRCP.x + WT_Origin, 
+                 data = train_data,
+                 distribution = "multinomial",
+                 n.trees = 1000,
+                 shrinkage = 0.01,
+                 interaction.depth = 10)
+
+
+# NOTE: we need to specify number of trees to get a prediction for boosting
+pred.boost <- predict(mod.boost, newdata = test_data, n.trees=1000)
+
+
+OSR2 <- function(predictions, test, train) {
+  SSE <- sum((test - predictions)^2)
+  SST <- sum((test - mean(train))^2)
+  r2 <- 1 - SSE/SST
+  return(r2)
+}
+print("Boosting OSR2:")
+OSR2(pred.boost, test_data$delay, train_data$delay)
