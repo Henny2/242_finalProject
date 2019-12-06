@@ -344,6 +344,10 @@ df_final$DELAYED = 0
 df_final$DELAYED[df_final$ARR_DELAY >15] = 1
 df_final$DELAYED = as.factor(df_final$DELAYED)
 
+
+# deleting the ARR_DELAY column to not use it as a feature
+df_final$ARR_DELAY = NULL
+
 set.seed(1234)
 split = sample.split(df_final$DELAYED, SplitRatio = 0.7) 
 class.train <- filter(df_final, split == TRUE) 
