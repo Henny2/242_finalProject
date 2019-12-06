@@ -375,3 +375,64 @@ pred.best.cart = predict(train.cart$finalModel, newdata = test.mm, type="class")
 t = table(class.test$DELAYED, pred.best.cart)
 acc_log = sum(diag(t))/sum(t)
 acc_log
+
+#### Baseline #####
+# prdicting most frequent
+table(class.test$DELAYED)
+acc_baseline = 39497/50257
+acc_baseline
+
+###### LASSO #######
+set.seed(3439)
+trainY = class.train$DELAYED
+fo = DELAYED ~ . -1
+
+x <- model.matrix(DELAYED~., class.train)[,-1]
+testX <- model.matrix(DELAYED~., class.test)[,-1]
+
+testY = class.test$DELAYED
+
+trainX$DELAYED = NULL
+mod.lasso <- glmnet(x = x, y = trainY, alpha = 1, family = "binomial")
+
+mod.lasso$lambda
+coefs.lasso <- coef(mod.lasso)
+x
+plot(mod.lasso, xvar = "lambda")
+
+set.seed(821)
+cv.lasso <- cv.glmnet(x = x, y = trainY, alpha = 1, family = "binomial")
+
+cv.lasso$lambda.min
+plot(cv.lasso)
+pred.lasso.train <- predict(cv.lasso, newx = x)
+pred.lasso.test <- predict(cv.lasso, newx = testX)
+
+# tells us the non-zero coefficient indicies
+nzero.lasso <- predict(cv.lasso, type = "nonzero")
+nzero.lasso
+mod.lasso$df
+mod.lasso
+# coef(mod.lasso)
+
+mod.lasso$df # gives the number of non-zero coefficients for each value of lambda
+coef(cv.lasso, cv.lasso$lambda.min) # gives the selected coefficients
+
+#### Question: which ones are chosen? the ones with the dot? or with numbers? ####
+# those with the dots are set to zero
+
+# Final model with lambda.min
+lasso.model <- glmnet(x, trainY, alpha = 1, family = "binomial",
+                      lambda = cv.lasso$lambda.min)
+# Make prediction on test data
+x.test <- model.matrix(DELAYED ~., class.test)[,-1]
+probabilities <- lasso.model %>% predict(newx = x.test)
+predicted.classes <- ifelse(probabilities > 0.5, 1, 0)
+probabilities>0.5
+predicted.classes
+# Model accuracy
+observed.classes <- class.test$DELAYED
+table(predicted.classes == observed.classes)
+acc_lasso = 39723 /50257
+acc_lasso
+
