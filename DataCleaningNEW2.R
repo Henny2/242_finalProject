@@ -361,3 +361,17 @@ table(predTestLog>0.5, class.test$DELAYED)
 acc_log = (39148+265)/117268
 acc_log
 
+######## CART ######
+train.cart = train(DELAYED ~ . - FL_DATE - ARR_DELAY - NAME.x - NAME.y , 
+                   data=class.train,
+                   method = "rpart",
+                   tuneGrid = data.frame(cp=seq(0, 0.04, 0.002)),
+                   trControl = trainControl(method="cv", number=5,verboseIter = TRUE),
+                   metric = "Accuracy")
+train.cart$bestTune
+prp(train.cart$finalModel, digits=3)
+test.mm = as.data.frame(model.matrix(DELAYED ~ . + 0, data=class.test)) 
+pred.best.cart = predict(train.cart$finalModel, newdata = test.mm, type="class")
+t = table(class.test$DELAYED, pred.best.cart)
+acc_log = sum(diag(t))/sum(t)
+acc_log
