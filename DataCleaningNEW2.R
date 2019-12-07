@@ -356,14 +356,62 @@ class.test <- filter(df_final, split == FALSE)
 
 
 ######## Logistic Regression ######
-log_reg <- glm(DELAYED ~ OP_UNIQUE_CARRIER+  DEST+ ORIGIN + WEEKDAY + WT_Origin + WT_Destination , data=class.train, family=binomial(link='logit'), maxit = 100)
+log_reg <- glm(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
+               +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME
+               , data=class.train, family=binomial(link='logit'), maxit = 100)
+#log_reg <- glm(DELAYED ~ ., data=class.train, family=binomial(link='logit'), maxit = 100)
+vif(log_reg)
 summary(log_reg)
+
+###### Testing additional features #####
+# tried with CRS_ELAPSED_TIME, but then Multicollinerarity; prbly between Distance and CRS ELAPSED TIME
+# name.x and name.y same information as origin and dest (city/airport names - lead to singularities)
+# AWND.x +AWND.y - both significant, no multicollinearity and improved accuracy ## ADDED
+# PRCP.x+PRCP.y - both significant, no multicollinearity and improved accuracy ## ADDED
+# SNOW.x+SNOW.y - both significant, no multicollinearity and improved accuracy ## ADDED
+# TAVG.x+TAVG.y - both significant, no multicollinearity and improved accuracy ## ADDED
+# WDF2.y -  significant, no multicollinearity and improved accuracy ## ADDED
+# WDF2.x -  not significant, (but improved accuracy because of extra degree of freedom) not added
+str(class.train)
+
 
 predTestLog <- predict(log_reg, newdata=class.test, type="response") # type on default gives log-odds, "response" gives predicted probabilities
 table(predTestLog >0.5)
 table(predTestLog>0.5, class.test$DELAYED)
-acc_log = (39148+265)/117268
+acc_log = (38777  + 1047)/50257
+
 acc_log
+
+#### ROC Curve Logistic Regression #####
+rocr.log.pred <- prediction(predTestLog, class.test$DELAYED)
+logPerformance <- performance(rocr.log.pred, "tpr", "fpr")
+logPerformance
+plot(logPerformance, colorize = TRUE)
+abline(0, 1)
+# area under the curve
+AUC_log1 = as.numeric(performance(rocr.log.pred, "auc")@y.values)
+AUC_log1
+
+####### LDA ########
+str(class.train)
+set.seed(1234)
+LdaModel <- lda(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
+                +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME
+                ,data=class.train)
+
+predTestLDA <- predict(LdaModel, newdata=class.test) 
+predTestLDA_probs <- predTestLDA$posterior[,2]
+
+table(class.test$DELAYED, predTestLDA_probs > 1/2)
+
+acc_lda = (38465+1364)/50257
+acc_lda
+
+rocr.lda.pred <- prediction(predTestLDA_probs, class.test$DELAYED)
+ldaPerformance <- performance(rocr.lda.pred, "tpr", "fpr")
+plot(ldaPerformance, colorize = TRUE)
+abline(0, 1)
+as.numeric(performance(rocr.lda.pred, "auc")@y.values)
 
 ######## CART ######
 train.cart = train(DELAYED ~ . - FL_DATE - ARR_DELAY - NAME.x - NAME.y , 
