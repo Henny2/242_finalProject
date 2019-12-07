@@ -2,6 +2,13 @@ library(data.table) # needed for function rbindlist
 library(dplyr)
 library(ggplot2)
 library(lubridate)
+library(caTools)
+library(randomForest)
+library(caret)
+library(viridis)
+library(car)
+# install.packages('vcd')
+library(vcd)
 
 # getting the data for 2019 in one df
 files_2019 = list.files("242data/2019/",pattern = ".csv")
@@ -348,6 +355,106 @@ df_final$DELAYED = as.factor(df_final$DELAYED)
 # deleting the ARR_DELAY column to not use it as a feature
 df_final$ARR_DELAY = NULL
 
+
+######## Visualization Via Boxplot ######
+
+### DELAYED (works poorly)
+# DISTANCE VS DELAYED
+df_final %>% ggplot(aes(x = DELAYED, y = DISTANCE, fill = DELAYED)) + 
+            geom_boxplot() + ggtitle("Boxplot of distance VS delayed")
+
+# flight time VS DELAYED
+df_final %>% ggplot(aes(x = DELAYED, y = CRS_ELAPSED_TIME, fill = DELAYED)) + 
+  geom_boxplot() + ggtitle("Boxplot of flight time VS delayed") + ylab("flight time")
+
+
+# origin wind speed VS DELAYED
+df_final %>% ggplot(aes(x = DELAYED, y = AWND.x, fill = DELAYED)) + 
+  geom_boxplot() + ggtitle("Boxplot of \nORIGIN wind speed VS delayed") + ylab("Wind speed")
+
+# destination wind speed VS DELAYED
+df_final %>% ggplot(aes(x = DELAYED, y = AWND.y, fill = DELAYED)) + 
+  geom_boxplot() + ggtitle("Boxplot of \nDEST wind speed VS delayed") + ylab("Wind speed")
+
+# origin average temperature VS DELAYED
+df_final %>% ggplot(aes(x = DELAYED, y = TAVG.x, fill = DELAYED)) + 
+  geom_boxplot() + ggtitle("Boxplot of \nORIGIN AVG temp VS delayed") + ylab("Temperature (°F)")
+
+# destination average temperature VS DELAYED
+df_final %>% ggplot(aes(x = DELAYED, y = TAVG.y, fill = DELAYED)) + 
+  geom_boxplot() + ggtitle("Boxplot of \nDEST AVG temp VS delayed") + ylab("Temperature (°F)")
+
+# origin temperature VS DELAYED
+df_final %>% ggplot(aes(x = DELAYED, y = TAVG.x, fill = DELAYED)) + 
+  geom_boxplot() + ggtitle("Boxplot of \nORIGIN AVG temp VS delayed") + ylab("Temperature (°F)")
+
+# destination temperature VS DELAYED
+df_final %>% ggplot(aes(x = DELAYED, y = TAVG.y, fill = DELAYED)) + 
+  geom_boxplot() + ggtitle("Boxplot of \nDEST AVG temp VS delayed") + ylab("Temperature (°F)")
+
+# origin precipitation VS DELAYED
+df_final %>% ggplot(aes(x = DELAYED, y = PRCP.x * 10, fill = DELAYED)) + 
+  geom_boxplot() + 
+  scale_fill_viridis(discrete = TRUE, alpha=0.4) +
+  coord_cartesian(ylim = c(0, 3)) +
+  ggtitle("Boxplot of \nORIGIN precipitation VS delayed") + 
+  ylab("Precipitation (mm)")
+
+# destination precipitation VS DELAYED
+df_final %>% ggplot(aes(x = DELAYED, y = PRCP.y * 10, fill = DELAYED)) + 
+  geom_boxplot() + 
+  scale_fill_viridis(discrete = TRUE, alpha=0.4) +
+  coord_cartesian(ylim = c(0, 3)) +
+  ggtitle("Boxplot of \nDESTINATION precipitation VS delayed") + 
+  ylab("Precipitation (mm)")
+
+# origin snow VS DELAYED (so.... so bad)
+df_final %>% ggplot(aes(x = DELAYED, y = SNOW.x, fill = DELAYED)) + 
+  geom_boxplot() + 
+  scale_fill_viridis(discrete = TRUE, alpha=0.4) +
+  coord_cartesian(ylim = c(0, 0.1)) +
+  ggtitle("Boxplot of \nORIGIN snow VS delayed") + 
+  ylab("Snow (mm)")
+
+
+### try ARR_DELAY instead
+
+# origin
+df_final %>% ggplot(aes(x = ORIGIN, y = ARR_DELAY, fill = DELAYED)) + 
+  geom_boxplot() + 
+  coord_cartesian(ylim = c(-100, 200)) + 
+  scale_fill_viridis(discrete = TRUE, alpha=0.4) +
+  ggtitle("Boxplot of arrival delay VS origin") + 
+  ylab("delayed minutes")
+  # facet_wrap(~DELAYED)
+
+# destination
+df_final %>% ggplot(aes(x = DEST, y = ARR_DELAY, fill = DELAYED)) + 
+  geom_boxplot() + 
+  coord_cartesian(ylim = c(-100, 200)) + 
+  scale_fill_viridis(discrete = TRUE, alpha=0.4) +
+  ggtitle("Boxplot of arrival delay VS destination") + 
+  ylab("delayed minutes")  
+
+# airlines
+df_final %>% ggplot(aes(x = OP_UNIQUE_CARRIER, y = ARR_DELAY, fill = DELAYED)) + 
+  geom_boxplot() + 
+  coord_cartesian(ylim = c(-100, 200)) + 
+  scale_fill_viridis(discrete = TRUE, alpha=0.4) +
+  ggtitle("Boxplot of arrival delay VS carrier") + 
+  ylab("delayed minutes")
+
+######## Visualization Via Mosaic Plot ######
+
+# origin
+tbl <- structable(df_final$DELAYED ~ df_final$ORIGIN)
+mosaic(tbl, main = "Mosaic Plot of \nORIGIN VS delay", xlab = "delayed", ylab = "origin", shade = TRUE, legend = TRUE)
+
+# destination
+tbl <- structable(df_final$DELAYED ~ df_final$DEST)
+mosaic(tbl, main = "Mosaic Plot of \nDEST VS delay", xlab = "delayed", ylab = "destination", shade = TRUE, legend = TRUE)
+
+######## Build models! ######
 set.seed(1234)
 split = sample.split(df_final$DELAYED, SplitRatio = 0.7) 
 class.train <- filter(df_final, split == TRUE) 
@@ -488,3 +595,49 @@ table(predicted.classes == observed.classes)
 acc_lasso = 39723 /50257
 acc_lasso
 
+
+######## Random Forest Regression ######
+
+set.seed(456)
+mod.rf <- randomForest(DELAYED ~ .-FL_DATE - ORIGIN_CITY_NAME - ORIGIN_STATE_NM - DEST_CITY_NAME - DEST_STATE_NM - CRS_DEP_TIME - CRS_ARR_TIME - ARR_DELAY, data = class.train)
+
+pred.rf <- predict(mod.rf, newdata = class.test) # just to illustrate
+
+# get the confusion matrix of the results
+t = table(class.test$DELAYED, pred.rf)
+t
+# accuracy:
+acc_rf = sum(diag(t)) / sum(t)
+acc_rf
+
+# try the cross-validated RF model
+set.seed(456)
+train.rf <- train(DELAYED ~ .-FL_DATE - ORIGIN_CITY_NAME 
+                  - ORIGIN_STATE_NM - DEST_CITY_NAME - DEST_STATE_NM 
+                  - CRS_DEP_TIME - CRS_ARR_TIME - ARR_DELAY,
+                  data = class.train,
+                  method = "rf",
+                  tuneGrid = data.frame(mtry=1:20),
+                  trControl = trainControl(method="cv", number=5, verboseIter = TRUE),
+                  metric = "Accuracy")
+train.rf$results
+train.rf
+best.rf <- train.rf$finalModel
+
+test.class.mm = as.data.frame(model.matrix(DELAYED ~ .-FL_DATE - ORIGIN_CITY_NAME 
+                                            - ORIGIN_STATE_NM - DEST_CITY_NAME - DEST_STATE_NM 
+                                            - CRS_DEP_TIME - CRS_ARR_TIME - ARR_DELAY + 0, data=class.test)) 
+
+
+pred.best.rf <- predict(best.rf, newdata = test.class.mm) 
+
+
+# make a graph and find the best mtry
+ggplot(train.rf$results, aes(x = mtry, y = Accuracy)) + geom_point(size = 2) + geom_line() +
+  ggtitle("Random Forest Accuracy VS mtry")
+ylab("Accuracy") + theme_bw() + theme(axis.title=element_text(size=18), axis.text=element_text(size=18))
+
+t <- table(class.test$DELAYED, pred.best.rf)
+t
+acc_best_rf <- sum(diag(t)) / sum(t)
+acc_best_rf
