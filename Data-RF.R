@@ -4,6 +4,7 @@ library(ggplot2)
 library(lubridate)
 library(caTools)
 library(randomForest)
+library(caret)
 
 # getting the data for 2019 in one df
 files_2019 = list.files("242data/2019/",pattern = ".csv")
@@ -379,5 +380,40 @@ t
 # accuracy:
 acc_rf = sum(diag(t)) / sum(t)
 acc_rf
+
+# try the cross-validated RF model
+set.seed(456)
+train.rf <- train(DELAYED ~ .-FL_DATE - ORIGIN_CITY_NAME 
+                  - ORIGIN_STATE_NM - DEST_CITY_NAME - DEST_STATE_NM 
+                  - CRS_DEP_TIME - CRS_ARR_TIME - ARR_DELAY,
+                  data = class.train,
+                  method = "rf",
+                  tuneGrid = data.frame(mtry=1:20),
+                  trControl = trainControl(method="cv", number=5, verboseIter = TRUE),
+                  metric = "Accuracy")
+train.rf$results
+train.rf
+best.rf <- train.rf$finalModel
+
+test.class.mm = as.data.frame(model.matrix(DELAYED ~ .-FL_DATE - ORIGIN_CITY_NAME 
+                                            - ORIGIN_STATE_NM - DEST_CITY_NAME - DEST_STATE_NM 
+                                            - CRS_DEP_TIME - CRS_ARR_TIME - ARR_DELAY + 0, data=class.test)) 
+
+
+pred.best.rf <- predict(best.rf, newdata = test.class.mm) 
+
+
+# make a graph and find the best mtry
+ggplot(train.rf$results, aes(x = mtry, y = Accuracy)) + geom_point(size = 2) + geom_line() +
+  ggtitle("Random Forest Accuracy VS mtry")
+ylab("Accuracy") + theme_bw() + theme(axis.title=element_text(size=18), axis.text=element_text(size=18))
+
+t <- table(class.test$DELAYED, pred.best.rf)
+t
+acc_best_rf <- sum(diag(t)) / sum(t)
+acc_best_rf
+
+
+
 
 
