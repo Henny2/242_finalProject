@@ -610,23 +610,43 @@ t
 acc_rf = sum(diag(t)) / sum(t)
 acc_rf
 
-# try the cross-validated RF model
+## try the cross-validated RF model
+
+# we would like to have the small Average Loss
+
+# reduce our data to 1% for now!
+# set.seed(144)
+# train.ids = sample(nrow(class.train), 0.01*nrow(class.train))
+# class.train = class.train[train.ids,]
+
+
+Loss = function(data, lev = NULL, model = NULL, ...) {
+  c(AvgLoss = mean(data$weights * (data$obs != data$pred) + 150 * (data$obs == data$pred)*(data$obs == 1)),
+    Accuracy = mean(data$obs == data$pred))
+}
+
+weights = ifelse(class.train$DELAYED == 1, class.train$ARR_DELAY / 60 * 30, 150)
+
+
 set.seed(456)
-train.rf <- train(DELAYED ~ .-FL_DATE - ORIGIN_CITY_NAME 
-                  - ORIGIN_STATE_NM - DEST_CITY_NAME - DEST_STATE_NM 
-                  - CRS_DEP_TIME - CRS_ARR_TIME - ARR_DELAY,
+train.rf <- train(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
+                  +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME,
                   data = class.train,
                   method = "rf",
-                  tuneGrid = data.frame(mtry=1:20),
-                  trControl = trainControl(method="cv", number=5, verboseIter = TRUE),
-                  metric = "Accuracy")
+                  weights = weights,
+                  tuneGrid = data.frame(mtry=5:5),
+                  trControl = trainControl(method="cv", 
+                                           number=2, 
+                                           summaryFunction = Loss, 
+                                           verboseIter = TRUE),
+                  metric = "AvgLoss",
+                  maximize=FALSE)
 train.rf$results
 train.rf
 best.rf <- train.rf$finalModel
 
-test.class.mm = as.data.frame(model.matrix(DELAYED ~ .-FL_DATE - ORIGIN_CITY_NAME 
-                                            - ORIGIN_STATE_NM - DEST_CITY_NAME - DEST_STATE_NM 
-                                            - CRS_DEP_TIME - CRS_ARR_TIME - ARR_DELAY + 0, data=class.test)) 
+test.class.mm = as.data.frame(model.matrix(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
+                                           +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME + 0, data=class.test)) 
 
 
 pred.best.rf <- predict(best.rf, newdata = test.class.mm) 
