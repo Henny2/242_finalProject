@@ -535,6 +535,119 @@ t = table(class.test$DELAYED, pred.best.cart)
 acc_log = sum(diag(t))/sum(t)
 acc_log
 
+
+## Cart with loss function ##
+
+set.seed(123)
+# we will first define a special loss function in CV
+# we would like to have the small Average Loss
+Loss = function(data, lev = NULL, model = NULL, ...) {
+  c(AvgLoss = mean(data$weights * (data$obs != data$pred)),
+    Accuracy = mean(data$obs == data$pred))
+}
+
+delays <- class.train %>% group_by(DELAYED) %>% summarise(delays = mean(ARR_DELAY))
+avg.delay <- as.numeric(as.matrix(delays)[2,2])
+
+# This specifies the weights i.e. the loss function
+# Read this as: if observation is a violator and we make a mistake, assign weight 20
+#               if observation is NOT a violator and we make a mistake, assign weight 1
+weights = ifelse(class.train$DELAYED == 1, avg.delay*80.25/60 + 27, 75)
+# DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST  
+# +AWND.x +AWND.y+ DISTANCE + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME,
+cart.loss <- train(
+                 DELAYED ~ . - FL_DATE - ARR_DELAY - NAME.x - NAME.y,
+                 data=class.train,
+                 method="rpart",
+                 weights = weights,
+                 trControl = trainControl(method = "cv", number = 5,
+                                        summaryFunction = Loss, verboseIter = TRUE),
+                 tuneGrid = data.frame(cp = seq(0, .01, by=.0005)), #cpVals
+                 metric="AvgLoss", 
+                 maximize=FALSE)
+cart.loss
+cp.plot <- ggplot(cart.loss$results, aes(x=cp, y=AvgLoss)) + geom_line(lwd=1) +
+  ylab("Average Loss of Predictions")
+cp.plot
+
+cart.loss$bestTune
+mod3432 = cart.loss$finalModel
+prp(mod3432, digits=3)
+
+# make predictions
+pred = predict(mod3432, newdata=test.mm, type="class")
+t = table(class.test$DELAYED, pred)
+acc_log = sum(diag(t))/sum(t)
+acc_log
+
+# Bootstrap 
+library(boot)
+
+tableAccuracy <- function(label, pred) {
+  t = table(label, pred)
+  a = sum(diag(t))/length(label)
+  return(a)
+}
+
+tableTPR <- function(label, pred) {
+  t = table(label, pred)
+  return(t[2,2]/(t[2,1] + t[2,2]))
+}
+
+tableFPR <- function(label, pred) {
+  t = table(label, pred)
+  return(t[1,2]/(t[1,1] + t[1,2]))
+}
+
+tableLoss <- function(label, pred) {
+  t = table(label, pred)
+  return(((avg.delay*80.25/60 + 27)*t[2,1]+t[2,2]*75)/sum(t))
+}
+
+
+boot_accuracy <- function(data, index) {
+  labels <- data$label[index]
+  predictions <- data$prediction[index]
+  return(tableAccuracy(labels, predictions))
+}
+
+boot_tpr <- function(data, index) {
+  labels <- data$label[index]
+  predictions <- data$prediction[index]
+  return(tableTPR(labels, predictions))
+}
+
+boot_fpr <- function(data, index) {
+  labels <- data$label[index]
+  predictions <- data$prediction[index]
+  return(tableFPR(labels, predictions))
+}
+
+boot_avgloss<- function(data, index) {
+  labels <- data$label[index]
+  predictions <- data$prediction[index]
+  return(tableLoss(labels, predictions))
+}
+
+boot_all_metrics <- function(data, index) {
+  acc = boot_accuracy(data, index)
+  tpr = boot_tpr(data, index)
+  fpr = boot_fpr(data, index)
+  avgloss =  boot_avgloss(data, index)
+  return(c(acc, tpr, fpr,avgloss))
+}
+
+big_B = 10000
+
+cart_df = data.frame(labels = class.test$DELAYED, predictions = pred)
+set.seed(3526)
+CART_boot = boot(cart_df, boot_all_metrics, R = big_B)
+CART_boot
+boot.ci(CART_boot, index = 1, type = "basic") # accuracy
+boot.ci(CART_boot, index = 2, type = "basic")
+boot.ci(CART_boot, index = 3, type = "basic")
+boot.ci(CART_boot, index = 4, type = "basic") # avg loss
+
 #### Baseline #####
 # prdicting most frequent
 table(class.test$DELAYED)
