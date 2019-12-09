@@ -620,12 +620,19 @@ acc_rf
 # class.train = class.train[train.ids,]
 
 
+## Calculate the training set average delay (only consider those greater than 15min)
+delays <- class.train %>% 
+          group_by(DELAYED) %>% summarise(delays = mean(ARR_DELAY))
+delays
+avg.delay <- as.numeric(as.matrix(delays)[2,2])
+
 Loss = function(data, lev = NULL, model = NULL, ...) {
-  c(AvgLoss = mean(data$weights * (data$obs != data$pred) + 150 * (data$obs == data$pred)*(data$obs == 1)),
+  c(AvgLoss = mean(data$weights * (data$obs != data$pred)),
+                   # + 75 * (data$obs == data$pred)*(data$obs == 1)),                
     Accuracy = mean(data$obs == data$pred))
 }
 
-weights = ifelse(class.train$DELAYED == 1, class.train$ARR_DELAY / 60 * 30, 150)
+weights = ifelse(class.train$DELAYED == 1, avg.delay / 60 * 80.25272727272727 + 27, 75)
 
 
 set.seed(456)
@@ -634,10 +641,10 @@ train.rf <- train(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ S
                   data = class.train,
                   method = "rf",
                   weights = weights,
-                  tuneGrid = data.frame(mtry=5:5),
+                  tuneGrid = data.frame(mtry=1:18),
                   trControl = trainControl(method="cv", 
-                                           number=2, 
-                                           summaryFunction = Loss, 
+                                           number=5, 
+                                           summaryFunction = Loss,
                                            verboseIter = TRUE),
                   metric = "AvgLoss",
                   maximize=FALSE)
@@ -653,9 +660,9 @@ pred.best.rf <- predict(best.rf, newdata = test.class.mm)
 
 
 # make a graph and find the best mtry
-ggplot(train.rf$results, aes(x = mtry, y = Accuracy)) + geom_point(size = 2) + geom_line() +
-  ggtitle("Random Forest Accuracy VS mtry")
-ylab("Accuracy") + theme_bw() + theme(axis.title=element_text(size=18), axis.text=element_text(size=18))
+ggplot(train.rf$results, aes(x = mtry, y = AvgLoss)) + geom_point(size = 2) + geom_line() +
+  ggtitle("Random Forest AvgLoss VS mtry")+
+ylab("AvgLoss") + theme_bw() + theme(axis.title=element_text(size=18), axis.text=element_text(size=18))
 
 t <- table(class.test$DELAYED, pred.best.rf)
 t
