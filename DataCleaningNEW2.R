@@ -648,6 +648,57 @@ boot.ci(CART_boot, index = 2, type = "basic")
 boot.ci(CART_boot, index = 3, type = "basic")
 boot.ci(CART_boot, index = 4, type = "basic") # avg loss
 
+#### CART With full loss matrix####
+##### CART LOSS##### validating cv
+library(stringr)
+
+cp.vals = rep(NA, 200)
+a= 1
+for (cp in seq(0, 0.04, 0.0002)) {
+  print(str_c("Trying cp value = ", cp))
+  mod <- rpart(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
+               +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME,
+               data = class.train,
+               method = "class", 
+               minbucket=5,  
+               control = rpart.control(cp = cp))
+  preds <- predict(mod, newdata = class.test, type = "class")
+  t = table(preds, class.test$DELAYED)
+  cp.vals[a] <- t[1,2]*75+t[2,1]*118.7556+t[2,2]*75 
+  a = a+1
+}
+cp.vals
+seq(0, 0.04, 0.002)
+seq(0, 0.04, 0.0002)
+
+
+
+final.cart.mod <- rpart(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
+             +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME,
+             data = class.train,
+             method = "class", 
+             minbucket=5,  
+             cp = 0.0042)
+prp(train.cart$finalModel)
+final.preds <- predict(final.cart.mod, newdata = class.test, type = "class")
+table(final.preds)
+table(final.preds, class.test$DELAYED)
+
+
+big_B = 1000
+
+cart_df = data.frame(labels = class.test$DELAYED, predictions = final.preds)
+set.seed(3526)
+CART_boot = boot(cart_df, boot_all_metrics, R = big_B)
+CART_boot
+boot.ci(CART_boot, index = 1, type = "basic") # accuracy
+boot.ci(CART_boot, index = 2, type = "basic")
+boot.ci(CART_boot, index = 3, type = "basic")
+boot.ci(CART_boot, index = 4, type = "basic") # avg loss
+###### end CART full losss matrix 
+
+
+
 #### Baseline #####
 # prdicting most frequent
 table(class.test$DELAYED)
