@@ -462,6 +462,7 @@ class.test <- filter(df_final, split == FALSE)
 
 
 
+
 ######## Logistic Regression ######
 log_reg <- glm(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
                +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME
@@ -479,17 +480,53 @@ summary(log_reg)
 # TAVG.x+TAVG.y - both significant, no multicollinearity and improved accuracy ## ADDED
 # WDF2.y -  significant, no multicollinearity and improved accuracy ## ADDED
 # WDF2.x -  not significant, (but improved accuracy because of extra degree of freedom) not added
+
+
 str(class.train)
+
 
 
 predTestLog <- predict(log_reg, newdata=class.test, type="response") # type on default gives log-odds, "response" gives predicted probabilities
 table(predTestLog >0.5)
+
+table(predTestLog>threshold, class.test$DELAYED)
 table(predTestLog>0.5, class.test$DELAYED)
+
+
 acc_log = (38777  + 1047)/50257
 
 acc_log
 
+#### Bootstrapping Logistic Regression ####
+preds_log = rep(FALSE,50257 )
+preds_log[predTestLog>0.5] = TRUE
+preds_log
+
+# adjusted threshold for minimzing the loss
+preds.loss.log = rep(FALSE,50257)
+preds.loss.log[predTestLog>threshold] = TRUE
+
+big_B = 1000
+log_reg_df = data.frame(labels = class.test$DELAYED, predictions = preds_log)
+log_reg_loss_df = data.frame(labels = class.test$DELAYED, predictions = preds.loss.log)
+set.seed(5810)
+LogReg_boot = boot(log_reg_df, boot_all_metrics, R = big_B)
+LogReg_loss_boot = boot(log_reg_loss_df, boot_all_metrics, R = big_B)
+LogReg_boot
+
+
+LogReg_boot
+boot.ci(LogReg_boot, index = 1, type = "basic") #accuracy confidence interval (95%)
+boot.ci(LogReg_boot, index = 2, type = "basic") # tpr confidence interval (95%)
+boot.ci(LogReg_boot, index = 3, type = "basic") # fpr confidence interval (95%)
+boot.ci(LogReg_boot, index = 4, type = "basic") # average loss confidence interval (95%)
+
+boot.ci(LogReg_loss_boot, index = 1, type = "basic") # accuracy confidence interval (95%)
+boot.ci(LogReg_loss_boot, index = 4, type = "basic") # average loss confidence interval (95%)
+
+
 #### ROC Curve Logistic Regression #####
+
 rocr.log.pred <- prediction(predTestLog, class.test$DELAYED)
 logPerformance <- performance(rocr.log.pred, "tpr", "fpr")
 logPerformance
@@ -499,7 +536,10 @@ abline(0, 1)
 AUC_log1 = as.numeric(performance(rocr.log.pred, "auc")@y.values)
 AUC_log1
 
+
+
 ####### LDA ########
+
 str(class.train)
 set.seed(1234)
 LdaModel <- lda(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
@@ -509,16 +549,48 @@ LdaModel <- lda(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNO
 predTestLDA <- predict(LdaModel, newdata=class.test) 
 predTestLDA_probs <- predTestLDA$posterior[,2]
 
-table(class.test$DELAYED, predTestLDA_probs > 1/2)
+t1=table(class.test$DELAYED, predTestLDA_probs > 1/2)
 
 acc_lda = (38465+1364)/50257
 acc_lda
+# 0.7925065
 
 rocr.lda.pred <- prediction(predTestLDA_probs, class.test$DELAYED)
 ldaPerformance <- performance(rocr.lda.pred, "tpr", "fpr")
 plot(ldaPerformance, colorize = TRUE)
 abline(0, 1)
 as.numeric(performance(rocr.lda.pred, "auc")@y.values)
+
+
+#### Bootstrapping LDA ####
+
+preds_lda = rep(FALSE,50257 )
+preds_lda[predTestLDA_probs>=0.5] = TRUE
+preds_lda
+
+big_B = 1000
+lda_df = data.frame(labels = class.test$DELAYED, predictions = preds_lda)
+set.seed(5810)
+LDA_boot = boot(lda_df, boot_all_metrics, R = big_B)
+
+LDA_boot
+boot.ci(LDA_boot, index = 1, type = "basic") #accuracy confidence interval (95%)
+boot.ci(LDA_boot, index = 2, type = "basic") # tpr confidence interval (95%)
+boot.ci(LDA_boot, index = 3, type = "basic") # fpr confidence interval (95%)
+boot.ci(LDA_boot, index = 4, type = "basic") # average loss confidence interval (95%)
+
+# with loss function
+
+preds_loss_lda = rep(FALSE,50257)
+preds_loss_lda[predTestLDA_probs> threshold] = TRUE
+
+big_B = 1000
+lda_loss_df = data.frame(labels = class.test$DELAYED, predictions = preds_loss_lda)
+set.seed(5810)
+LDA_loss_boot = boot(lda_loss_df, boot_all_metrics, R = big_B)
+
+boot.ci(LDA_loss_boot, index = 1, type = "basic") # accuracy confidence interval (95%)
+boot.ci(LDA_loss_boot, index = 4, type = "basic") # average loss confidence interval (95%)
 
 ######## CART ######
 train.cart = train(DELAYED ~ . - FL_DATE - ARR_DELAY - NAME.x - NAME.y , 
@@ -574,6 +646,94 @@ cart.loss$bestTune
 mod3432 = cart.loss$finalModel
 prp(mod3432, digits=3)
 
+###### LASSO #######
+set.seed(3439)
+trainY = class.train$DELAYED
+fo = DELAYED ~ . -1
+
+x <- model.matrix(DELAYED~., class.train)[,-1]
+testX <- model.matrix(DELAYED~., class.test)[,-1]
+
+testY = class.test$DELAYED
+
+mod.lasso <- glmnet(x = x, y = trainY, alpha = 1, family = "binomial")
+
+mod.lasso$lambda
+coefs.lasso <- coef(mod.lasso)
+x
+plot(mod.lasso, xvar = "lambda")
+
+set.seed(821)
+cv.lasso <- cv.glmnet(x = x, y = trainY, alpha = 1, family = "binomial")
+
+cv.lasso$lambda.min
+plot(cv.lasso)
+pred.lasso.train <- predict(cv.lasso, newx = x)
+pred.lasso.test <- predict(cv.lasso, newx = testX)
+
+# tells us the non-zero coefficient indicies
+nzero.lasso <- predict(cv.lasso, type = "nonzero")
+nzero.lasso
+mod.lasso$df
+mod.lasso
+# coef(mod.lasso)
+
+
+mod.lasso$df # gives the number of non-zero coefficients for each value of lambda
+coef(cv.lasso, cv.lasso$lambda.min)
+
+#### Question: which ones are chosen? the ones with the dot? or with numbers? ####
+# those with the dots are set to zero
+
+
+
+# Final model with lambda.min
+lasso.model <- glmnet(x, trainY, alpha = 1, family = "binomial",
+                      lambda = cv.lasso$lambda.min)
+# Make prediction on test data
+x.test <- model.matrix(DELAYED ~., class.test)[,-1]
+probabilities <- lasso.model %>% predict(newx = x.test)
+predicted.classes <- ifelse(probabilities > 0.5, 1, 0)
+probabilities>0.5
+
+probabilities
+predicted.classes
+# Model accuracy
+observed.classes <- class.test$DELAYED
+table(predicted.classes == observed.classes)
+acc_lasso = 39723 /50257
+acc_lasso
+acc_log
+acc_lda
+
+
+#### Bootstrapping LASSO ####
+preds_lasso = rep(FALSE,50257 )
+preds_lasso[predicted.classes==1] = TRUE
+preds_lasso
+length(predicted.classes) 
+length(class.test$DELAYED)
+
+big_B = 1000
+lasso_df = data.frame(labels = class.test$DELAYED, predictions = preds_lasso)
+set.seed(5810)
+LASSO_boot = boot(lasso_df, boot_all_metrics, R = big_B)
+
+LASSO_boot
+boot.ci(LASSO_boot, index = 1, type = "basic") #accuracy confidence interval (95%)
+boot.ci(LASSO_boot, index = 2, type = "basic") # tpr confidence interval (95%)
+boot.ci(LASSO_boot, index = 3, type = "basic") # fpr confidence interval (95%)
+boot.ci(LASSO_boot, index = 4, type = "basic") # average loss confidence interval (95%)
+
+## with loss function
+predicted.loss.classes <- ifelse(probabilities > threshold, 1, 0)
+preds_loss_lasso = rep(FALSE,50257 )
+preds_loss_lasso[predicted.loss.classes==1] = TRUE
+lasso_loss_df = data.frame(labels = class.test$DELAYED, predictions = preds_loss_lasso)
+set.seed(5810)
+LASSO_loss_boot = boot(lasso_loss_df, boot_all_metrics, R = big_B)
+boot.ci(LASSO_loss_boot, index = 1, type = "basic") # accuracy confidence interval (95%)
+boot.ci(LASSO_loss_boot, index = 4, type = "basic") # average loss confidence interval (95%)
 # make predictions
 pred = predict(mod3432, newdata=test.mm, type="class")
 t = table(class.test$DELAYED, pred)
