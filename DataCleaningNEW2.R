@@ -761,7 +761,7 @@ tableFPR <- function(label, pred) {
 
 tableLoss <- function(label, pred) {
   t = table(label, pred)
-  return(((avg.delay*80.25/60 + 27)*t[2,1]+t[2,2]*75)/sum(t))
+  return(((avg.delay*80.25/60 + 27)*t[2,1]+(t[1,2]+t[2,2])*75)/sum(t))
 }
 
 
