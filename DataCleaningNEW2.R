@@ -522,6 +522,8 @@ boot.ci(LogReg_boot, index = 3, type = "basic") # fpr confidence interval (95%)
 boot.ci(LogReg_boot, index = 4, type = "basic") # average loss confidence interval (95%)
 
 boot.ci(LogReg_loss_boot, index = 1, type = "basic") # accuracy confidence interval (95%)
+boot.ci(LogReg_loss_boot, index = 2, type = "basic") # tpr confidence interval (95%)
+boot.ci(LogReg_loss_boot, index = 3, type = "basic") # fpr confidence interval (95%)
 boot.ci(LogReg_loss_boot, index = 4, type = "basic") # average loss confidence interval (95%)
 
 
@@ -590,7 +592,10 @@ set.seed(5810)
 LDA_loss_boot = boot(lda_loss_df, boot_all_metrics, R = big_B)
 
 boot.ci(LDA_loss_boot, index = 1, type = "basic") # accuracy confidence interval (95%)
+boot.ci(LDA_loss_boot, index = 2, type = "basic") # tpr confidence interval (95%)
+boot.ci(LDA_loss_boot, index = 3, type = "basic") # fpr confidence interval (95%)
 boot.ci(LDA_loss_boot, index = 4, type = "basic") # average loss confidence interval (95%)
+
 
 ######## CART ######
 train.cart = train(DELAYED ~ . - FL_DATE - ARR_DELAY - NAME.x - NAME.y , 
@@ -725,6 +730,7 @@ boot.ci(LASSO_boot, index = 2, type = "basic") # tpr confidence interval (95%)
 boot.ci(LASSO_boot, index = 3, type = "basic") # fpr confidence interval (95%)
 boot.ci(LASSO_boot, index = 4, type = "basic") # average loss confidence interval (95%)
 
+
 ## with loss function
 predicted.loss.classes <- ifelse(probabilities > threshold, 1, 0)
 preds_loss_lasso = rep(FALSE,50257 )
@@ -733,6 +739,8 @@ lasso_loss_df = data.frame(labels = class.test$DELAYED, predictions = preds_loss
 set.seed(5810)
 LASSO_loss_boot = boot(lasso_loss_df, boot_all_metrics, R = big_B)
 boot.ci(LASSO_loss_boot, index = 1, type = "basic") # accuracy confidence interval (95%)
+boot.ci(LASSO_loss_boot, index = 2, type = "basic") # tpr confidence interval (95%)
+boot.ci(LASSO_loss_boot, index = 3, type = "basic") # fpr confidence interval (95%)
 boot.ci(LASSO_loss_boot, index = 4, type = "basic") # average loss confidence interval (95%)
 # make predictions
 pred = predict(mod3432, newdata=test.mm, type="class")
