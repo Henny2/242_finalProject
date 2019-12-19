@@ -928,10 +928,17 @@ acc_lasso = 39723 /50257
 acc_lasso
 
 
-######## Random Forest Regression ######
-
 set.seed(456)
-mod.rf <- randomForest(DELAYED ~ .-FL_DATE - ORIGIN_CITY_NAME - ORIGIN_STATE_NM - DEST_CITY_NAME - DEST_STATE_NM - CRS_DEP_TIME - CRS_ARR_TIME - ARR_DELAY, data = class.train)
+# mod.rf <- randomForest(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
+#                        +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME, 
+#                        data = class.train,
+#                        cutoff=c(.96,.04))
+costMatrix <- matrix(c(0,118.7556182,75,75), nrow=2)
+set.seed(456)
+mod.rf <- randomForest(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
+                       +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME, 
+                       data = class.train,
+                       parms = list(loss=costMatrix))
 
 pred.rf <- predict(mod.rf, newdata = class.test) # just to illustrate
 
@@ -942,6 +949,11 @@ t
 acc_rf = sum(diag(t)) / sum(t)
 acc_rf
 
+loss_rf = sum(t * costMatrix) / sum(t)
+loss_rf
+
+
+
 ## try the cross-validated RF model
 
 # we would like to have the small Average Loss
@@ -951,7 +963,6 @@ acc_rf
 # train.ids = sample(nrow(class.train), 0.01*nrow(class.train))
 # class.train = class.train[train.ids,]
 
-
 ## Calculate the training set average delay (only consider those greater than 15min)
 delays <- class.train %>% 
           group_by(DELAYED) %>% summarise(delays = mean(ARR_DELAY))
@@ -959,8 +970,8 @@ delays
 avg.delay <- as.numeric(as.matrix(delays)[2,2])
 
 Loss = function(data, lev = NULL, model = NULL, ...) {
-  c(AvgLoss = mean(data$weights * (data$obs != data$pred)),
-                   # + 75 * (data$obs == data$pred)*(data$obs == 1)),                
+  c(AvgLoss = mean(data$weights * (data$obs != data$pred)
+                   + 75 * (data$obs == data$pred)*(data$obs == 1)),                
     Accuracy = mean(data$obs == data$pred))
 }
 
@@ -973,7 +984,7 @@ train.rf <- train(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ S
                   data = class.train,
                   method = "rf",
                   weights = weights,
-                  tuneGrid = data.frame(mtry=1:18),
+                  tuneGrid = data.frame(mtry=5:5),
                   trControl = trainControl(method="cv", 
                                            number=5, 
                                            summaryFunction = Loss,
@@ -992,11 +1003,43 @@ pred.best.rf <- predict(best.rf, newdata = test.class.mm)
 
 
 # make a graph and find the best mtry
-ggplot(train.rf$results, aes(x = mtry, y = AvgLoss)) + geom_point(size = 2) + geom_line() +
-  ggtitle("Random Forest AvgLoss VS mtry")+
-ylab("AvgLoss") + theme_bw() + theme(axis.title=element_text(size=18), axis.text=element_text(size=18))
+
+# Best mtry on AvgLoss
+p <- ggplot(train.rf$results, aes(mtry))
+
+p <- p + geom_line(aes(y = Accuracy, colour = 'Accuracy')) +geom_point(aes(y = Accuracy, colour = 'Accuracy'), size = 2)
+
+p <- p + geom_line(aes(y = AvgLoss/30, colour = 'Average Loss')) +geom_point(aes(y = AvgLoss/30, colour = 'Average Loss'), size = 2)
+
+p <- p + scale_y_continuous(sec.axis = sec_axis(~.*30, name = "Average Loss"))
+
+p <- p + ggtitle("RF AvgLoss/Accuracy VS mtry") +
+                labs(y = "Accuracy",
+                colour = "Metric") +
+  theme_bw() + theme(axis.title=element_text(size=10), axis.text=element_text(size=8))
+
+p
+
+
+# Best mtry on Accuracy
+ggplot(train.rf$results, aes(x = mtry, y = Accuracy)) + geom_point(size = 2) + geom_line() +
+  ggtitle("Random Forest Accuracy VS mtry")+
+  ylab("Accuracy") + theme_bw() + theme(axis.title=element_text(size=18), axis.text=element_text(size=18))
+
 
 t <- table(class.test$DELAYED, pred.best.rf)
 t
 acc_best_rf <- sum(diag(t)) / sum(t)
 acc_best_rf
+
+#### Bootstrapping Random Forest ####
+big_B = 1000
+
+rf_df = data.frame(labels = class.test$DELAYED, predictions = pred.best.rf)
+set.seed(3526)
+rf_boot = boot(rf_df, boot_all_metrics, R = big_B)
+rf_boot
+boot.ci(rf_boot, index = 1, type = "basic") # accuracy
+boot.ci(rf_boot, index = 2, type = "basic")
+boot.ci(rf_boot, index = 3, type = "basic")
+boot.ci(rf_boot, index = 4, type = "basic") # avg loss
