@@ -68,7 +68,8 @@ acc_best_rf <- sum(diag(t)) / sum(t)
 acc_best_rf
 
 ######## CART ######
-train.cart = train(DELAYED ~ . - FL_DATE - ARR_DELAY - NAME.x - NAME.y , 
+train.cart = train(DELAYED ~ DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
+                                           +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME + 0 , 
                    data=class.train,
                    method = "rpart",
                    tuneGrid = data.frame(cp=seq(0, 0.04, 0.002)),
