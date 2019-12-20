@@ -1,0 +1,68 @@
+## multiclass classification ##
+
+df_final$DELAYED = 0
+df_final$DELAYED[df_final$ARR_DELAY >15] = 1
+df_final$DELAYED[df_final$ARR_DELAY >180] = 2
+df_final$DELAYED[df_final$ARR_DELAY >300] = 3
+df_final$DELAYED = as.factor(df_final$DELAYED)
+
+set.seed(1234)
+split = sample.split(df_final$DELAYED, SplitRatio = 0.7) 
+class.train <- filter(df_final, split == TRUE) 
+class.test <- filter(df_final, split == FALSE)
+
+
+str(class.train)
+set.seed(1234)
+LdaModel <- lda(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
+                +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME
+                ,data=class.train)
+
+predTestLDA <- predict(LdaModel, newdata=class.test) 
+predTestLDAfunclass <- predTestLDA$class
+predTestLDAfunprob <- predTestLDA$posterior
+
+tab <- table(class.test$DELAYED, predTestLDAfunclass)
+accuracy <- sum(diag(tab))/sum(tab)
+accuracy
+tab
+
+pred = apply(predTestLDA, 1, which.max)
+predpred = factor(pred, levels = c(1,2,3,4), labels = c("A", "B", "C", "D"))
+
+pred
+
+
+
+set.seed(456)
+train.rf <- train(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
+                  +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME,
+                  data = class.train,
+                  method = "rf",
+                  weights = weights,
+                  tuneGrid = data.frame(mtry=1:18),
+                  trControl = trainControl(method="cv", 
+                                           number=5, 
+                                           verboseIter = TRUE),
+                  metric = "Accuracy",
+                  maximize=FALSE)
+train.rf$results
+train.rf
+best.rf <- train.rf$finalModel
+
+test.class.mm = as.data.frame(model.matrix(DELAYED ~ OP_UNIQUE_CARRIER + WDF2.y+ TAVG.y+TAVG.x+ SNOW.x+ SNOW.y + PRCP.x+PRCP.y+ DEST 
+                                           +AWND.x +AWND.y+ DISTANCE  + ORIGIN + WEEKDAY + WT_Origin + WT_Destination + CRS_DEP_TIME + CRS_ARR_TIME + 0, data=class.test)) 
+
+
+pred.best.rf <- predict(best.rf, newdata = test.class.mm) 
+
+
+# make a graph and find the best mtry
+ggplot(train.rf$results, aes(x = mtry, y = AvgLoss)) + geom_point(size = 2) + geom_line() +
+  ggtitle("Random Forest AvgLoss VS mtry")+
+  ylab("AvgLoss") + theme_bw() + theme(axis.title=element_text(size=18), axis.text=element_text(size=18))
+
+t <- table(class.test$DELAYED, pred.best.rf)
+t
+acc_best_rf <- sum(diag(t)) / sum(t)
+acc_best_rf
